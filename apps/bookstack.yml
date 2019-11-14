@@ -105,12 +105,8 @@
               volumes: '{{pg_volumes}}'
               env: '{{pg_env_db}}'
               restart_policy: unless-stopped
-      register: output
 
     # AFTER ########################################################################
-    - debug:
-        var: output
-
     - assert:
         that:
           - "{{pgrole}}.{{pgrole}}_1.state.running"
