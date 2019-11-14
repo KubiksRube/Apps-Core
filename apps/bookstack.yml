@@ -77,16 +77,15 @@
           MYSQL_DATABASE: '{{pgrole}}'
 
     # MAIN DEPLOYMENT #############################################################
-    - name: 'Deploying {{pgrole}}'
+    - name: Deploying "{{pgrole}}"
       docker_compose:
-        project_name: '{{pgrole}}'
+        project_src: '{{pgrole}}'
         definition:
           version: '2'
           services:
             '{{pgrole}}':
               container_name: '{{pgrole}}'
               image: '{{image}}'
-              pull: yes
               published_ports:
                 - '{{ports.stdout}}{{extport}}:{{intport}}'
               volumes: '{{pg_volumes}}'
@@ -101,12 +100,15 @@
             '{{pgrole}}_db':
               container_name: '{{pgrole}}_db'
               image: '{{db_image}}'
-              pull: yes
               volumes: '{{pg_volumes}}'
               env: '{{pg_env_db}}'
               restart_policy: unless-stopped
+      register: output
 
     # AFTER ########################################################################
+    - debug:
+        var: output
+
     - assert:
         that:
           - "{{pgrole}}.{{pgrole}}_1.state.running"
