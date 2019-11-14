@@ -61,7 +61,7 @@
           PGID: '1000'
           DB_HOST: '{{pgrole}}_db'
           DB_USER: '{{pgrole}}'
-          DB_PASS: "lookup('password', '/opt/appdata/{{pgrole}}/db_pw chars=ascii_letters')"
+          DB_PASS: lookup('password', '/opt/appdata/{{pgrole}}/db_pw chars=ascii_letters')
           DB_DATABASE: '{{pgrole}}'
           APP_URL: '{{pgrole}}.{{domain.stdout}}{{tldset}}{{cname}}'
 
@@ -71,9 +71,9 @@
           PUID: '1000'
           PGID: '1000'
           TZ: 'America/New_York'
-          MYSQL_ROOT_PASSWORD: "lookup('password', '/opt/appdata/{{pgrole}}/mysql_root_pw chars=ascii_letters')"
+          MYSQL_ROOT_PASSWORD: lookup('password', '/opt/appdata/{{pgrole}}/mysql_root_pw chars=ascii_letters')
           MYSQL_USER: '{{pgrole}}'
-          MYSQL_PASSWORD: "lookup('password', '/opt/appdata/{{pgrole}}/db_pw chars=ascii_letters')"
+          MYSQL_PASSWORD: lookup('password', '/opt/appdata/{{pgrole}}/db_pw chars=ascii_letters')
           MYSQL_DATABASE: '{{pgrole}}'
 
     # MAIN DEPLOYMENT #############################################################
