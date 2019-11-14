@@ -77,9 +77,8 @@
           MYSQL_DATABASE: '{{pgrole}}'
 
     # MAIN DEPLOYMENT #############################################################
-    - name: Deploying "{{pgrole}}"
-      docker_compose:
-        project_src: '{{pgrole}}'
+    - docker_compose:
+        project_name: '{{pgrole}}'
         definition:
           version: '2'
           services:
