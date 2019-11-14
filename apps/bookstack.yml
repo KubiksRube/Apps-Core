@@ -1,4 +1,4 @@
-#!/bin/bash
+b#!/bin/bash
 #
 # Title:      PGBlitz (Reference Title File)
 # Author(s):  Admin9705
@@ -12,10 +12,11 @@
     # FACTS #######################################################################
     - name: 'Set Known Facts'
       set_fact:
-        pgrole: 'tautulli'
-        intport: '8181'
-        extport: '8181'
-        image: 'linuxserver/tautulli'
+        pgrole: 'bookstack'
+        intport: '80'
+        extport: '6875'
+        image: 'linuxserver/bookstack'
+        db_image: 'linuxserver/mariadb'
 
     # CORE (MANDATORY) ############################################################
     - name: 'Including cron job'
@@ -26,7 +27,7 @@
 
     - name: 'Checking for existing app data'
       stat:
-        path: /opt/appdata/tautulli/config.ini
+        path: /opt/appdata/{{pgrole}}/BOOKSTACK_APP_KEY.txt
       register: confcheck
 
     # LABELS ######################################################################
@@ -52,65 +53,65 @@
         pg_volumes:
           - '/etc/localtime:/etc/localtime:ro'
           - '/opt/appdata/{{pgrole}}:/config'
-          - '/opt/appdata/plex/database/Library/Application Support/Plex Media Server/Logs:/logs'
-          - '/opt/appdata/{{pgrole}}/scripts:/scripts'
 
     - name: 'Setting PG ENV'
       set_fact:
         pg_env:
           PUID: '1000'
           PGID: '1000'
+          DB_HOST: '{{pgrole}}_db'
+          DB_USER: '{{pgrole}}'
+          DB_PASS: lookup('password', '/opt/appdata/{{pgrole}}/db_pw chars=ascii_letters')
+          DB_DATABASE: '{{pgrole}}'
+          APP_URL: '{{pgrole}}.{{domain.stdout}}{{tldset}}{{cname}}'
+
+    - name: 'Setting PG ENV 2'
+      set_fact:
+        pg_env_db:
+          PUID: '1000'
+          PGID: '1000'
+          TZ: 'America/New_York'
+          MYSQL_ROOT_PASSWORD: lookup('password', '/opt/appdata/{{pgrole}}/mysql_root_pw chars=ascii_letters')
+          MYSQL_USER: '{{pgrole}}'
+          MYSQL_PASSWORD: lookup('password', '/opt/appdata/{{pgrole}}/db_pw chars=ascii_letters')
+          MYSQL_DATABASE: '{{pgrole}}'
 
     # MAIN DEPLOYMENT #############################################################
     - name: 'Deploying {{pgrole}}'
-      docker_container:
-        name: '{{pgrole}}'
-        image: '{{image}}'
-        pull: yes
-        published_ports:
-          - '{{ports.stdout}}{{extport}}:{{intport}}'
-        volumes: '{{pg_volumes}}'
-        env: '{{pg_env}}'
-        restart_policy: unless-stopped
-        networks:
-          - name: plexguide
-            aliases:
-              - '{{pgrole}}'
-        state: started
-        labels: '{{pg_labels}}'
+      docker_compose:
+        project_name: '{{pgrole}}'
+        definition:
+          version: '2'
+          services:
+            '{{pgrole}}':
+              container_name: '{{pgrole}}'
+              image: '{{image}}'
+              pull: yes
+              published_ports:
+                - '{{ports.stdout}}{{extport}}:{{intport}}'
+              volumes: '{{pg_volumes}}'
+              env: '{{pg_env}}'
+              restart_policy: unless-stopped
+              networks:
+                - name: plexguide
+                  aliases:
+                    - '{{pgrole}}'
+              labels: '{{pg_labels}}'
+              depends_on: '{{pgrole}}_db'
+            '{{pgrole}}_db':
+              container_name: '{{pgrole}}_db'
+              image: '{{db_image}}'
+              pull: yes
+              volumes: '{{pg_volumes}}'
+              env: '{{pg_env_db}}'
+              restart_policy: unless-stopped
+      register: output
 
     # AFTER ########################################################################
-    - name: 'Configuring {{pgrole}} for first time use'
-      block:
-        - name: 'Waiting for {{pgrole}} to start'
-          wait_for:
-            path: '/opt/appdata/tautulli/config.ini'
-            state: present
+    - debug:
+        var: output
 
-        - name: Stop Container
-          docker_container:
-            name: tautulli
-            state: stopped
-
-        # - name: set http_username
-        #   ini_file:
-        #     path: '/opt/appdata/{{pgrole}}/config.ini'
-        #     section: misc
-        #     option: http_username
-        #     value: plex
-        #     state: present
-
-        # - name: set http_password
-        #   ini_file:
-        #     path: '/opt/appdata/{{pgrole}}/config.ini'
-        #     section: misc
-        #     option: http_password
-        #     value: guide
-        #     state: present
-
-        - name: Restart {{pgrole}}
-          docker_container:
-            name: '{{pgrole}}'
-            state: started
-
-      when: not confcheck.stat.exists
+    - assert:
+        that:
+          - "{{pgrole}}.{{pgrole}}_1.state.running"
+          - "{{pgrole}}_db.{{pgrole}}_db_1.state.running"
